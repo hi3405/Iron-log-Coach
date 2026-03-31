@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>IRON LOG · COACH</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   IRON LOG COACH — Design Tokens
+═══════════════════════════════════════ */
+:root {
+  --bg:#09090b;--card:#111114;--card-on:#161619;
+  --border:rgba(255,255,255,0.06);--border-sel:rgba(56,224,160,0.35);
+  --text:#f0f0f5;--sub:#777788;--dim:#444455;
+  --accent:#38e0a0;--accent-t:#2bc88a;--accent-bg:rgba(56,224,160,0.08);
+  --nav-bg:rgba(9,9,11,0.94);
+  --shadow:0 4px 20px rgba(56,224,160,0.2);
+  --red:#ef5350;--yellow:#f5c842;--blue:#5b9bf5;
+  --overlay:rgba(0,0,0,0.72);--r:14px;
+}
+@media(prefers-color-scheme:light){:root{
+  --bg:#f5f5f7;--card:#ffffff;--card-on:#f0f0f2;
+  --border:rgba(0,0,0,0.07);--border-sel:rgba(22,163,108,0.4);
+  --text:#1a1a1e;--sub:#6b6b7b;--dim:#a0a0ae;
+  --accent:#16a36c;--accent-t:#128a5b;--accent-bg:rgba(22,163,108,0.07);
+  --nav-bg:rgba(245,245,247,0.93);
+  --shadow:0 4px 20px rgba(22,163,108,0.15);
+  --red:#d32f2f;--yellow:#e6a800;--blue:#1a73e8;
+  --overlay:rgba(0,0,0,0.4);
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;
+  max-width:430px;margin:0 auto;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+/* Pages */
+.page{display:none;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* Header */
+.hdr{padding:calc(env(safe-area-inset-top) + 10px) 20px 10px;display:flex;align-items:center;
+  justify-content:space-between;position:sticky;top:0;z-index:40;background:var(--bg)}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;color:var(--text)}
+.logo span{color:var(--accent)}
+.hdr-sub{font-size:11px;color:var(--dim);font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:8px}
+.icon-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--card);
+  display:grid;place-items:center;cursor:pointer;font-size:14px;transition:all .15s;color:var(--sub)}
+.icon-btn:active{transform:scale(0.88)}
+
+/* Section label */
+.sec{padding:16px 20px 6px;font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+
+/* Bottom nav — 5 tabs */
+.bnav{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;
+  background:var(--nav-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:50}
+.nb{flex:1;padding:8px 0 7px;border:none;background:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.nb-i{font-size:18px;line-height:1}
+.nb-l{font-size:9px;color:var(--dim);font-weight:500;letter-spacing:0.2px}
+.nb.on .nb-l{color:var(--accent-t)}
+.nb.on::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:18px;height:2px;background:var(--accent);border-radius:0 0 2px 2px}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 16px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px;animation:fadeUp .3s ease both}
+.stat-card:nth-child(1){animation-delay:.03s}.stat-card:nth-child(2){animation-delay:.06s}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--accent);letter-spacing:1px;line-height:1}
+.stat-lbl{font-size:11px;color:var(--sub);margin-top:4px}
+.stat-card.warn .stat-val{color:var(--yellow)}
+.stat-card.red .stat-val{color:var(--red)}
+
+/* Alert banners */
+.alert-list{padding:0 16px 4px}
+.alert{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;
+  background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2);
+  border-radius:10px;margin-bottom:6px;animation:fadeUp .3s ease;cursor:pointer;transition:background .15s}
+.alert:active{background:rgba(245,200,66,0.14)}
+.alert.red{background:rgba(239,83,80,0.08);border-color:rgba(239,83,80,0.2)}
+.alert-icon{font-size:15px;margin-top:1px}
+.alert-text{flex:1;font-size:13px;color:var(--text);line-height:1.5}
+.alert-text b{color:var(--yellow)}
+.alert.red .alert-text b{color:var(--red)}
+
+/* Student cards */
+.list{padding:8px 16px}
+.s-card{display:flex;align-items:center;gap:12px;padding:14px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  margin-bottom:8px;cursor:pointer;transition:all .15s;animation:fadeUp .3s ease both}
+.s-card:active{transform:scale(0.98);background:var(--card-on)}
+.s-card:nth-child(1){animation-delay:.03s}.s-card:nth-child(2){animation-delay:.06s}
+.s-card:nth-child(3){animation-delay:.09s}.s-card:nth-child(4){animation-delay:.12s}
+.s-av{width:44px;height:44px;border-radius:50%;background:var(--accent-bg);
+  border:2px solid var(--border-sel);display:grid;place-items:center;
+  font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);flex-shrink:0}
+.s-info{flex:1;min-width:0}
+.s-name{font-size:15px;font-weight:600}
+.s-meta{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-badge{display:inline-flex;align-items:center;justify-content:center;
+  min-width:38px;height:38px;border-radius:10px;
+  font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:0.5px;flex-shrink:0}
+.s-badge.ok{background:var(--accent-bg);color:var(--accent)}
+.s-badge.warn{background:rgba(245,200,66,0.1);color:var(--yellow)}
+.s-badge.red{background:rgba(239,83,80,0.1);color:var(--red)}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom));right:20px;
+  width:52px;height:52px;border-radius:50%;background:var(--accent);border:none;
+  font-size:24px;cursor:pointer;display:grid;place-items:center;
+  box-shadow:var(--shadow);transition:all .2s;z-index:30;color:#fff;line-height:1}
+.fab:active{transform:scale(0.9)}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:var(--overlay);z-index:200;
+  display:none;align-items:flex-end;justify-content:center}
+.modal-bg.on{display:flex;animation:fadeIn .18s ease}
+.modal{background:var(--card);border:1px solid var(--border);border-bottom:none;
+  padding:16px 20px 32px;width:100%;max-width:430px;
+  border-top-left-radius:22px;border-top-right-radius:22px;
+  animation:fadeUp .22s ease;max-height:92vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--sub);margin-bottom:16px;line-height:1.5}
+
+/* Form */
+.field{margin-bottom:13px}
+.field-label{font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;
+  letter-spacing:0.8px;margin-bottom:5px;display:block}
+.field-input{width:100%;padding:12px 14px;background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;
+  transition:border-color .15s;-webkit-appearance:none;appearance:none}
+.field-input:focus{outline:none;border-color:var(--accent)}
+.field-input::placeholder{color:var(--dim)}
+.field-row{display:flex;gap:8px}
+.field-row .field{flex:1;margin-bottom:13px}
+
+/* Buttons */
+.btn-primary{width:100%;padding:14px;border:none;border-radius:12px;
+  background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary:active{transform:scale(0.98);opacity:0.9}
+.btn-secondary{width:100%;padding:13px;border:1px solid var(--border);border-radius:12px;
+  background:none;color:var(--sub);font-family:'DM Sans',sans-serif;font-size:14px;
+  cursor:pointer;transition:all .15s;margin-top:8px}
+.btn-secondary:active{background:var(--card-on)}
+.btn-danger{border-color:rgba(239,83,80,0.25);color:var(--red)}
+.btn-row{display:flex;gap:8px}
+.btn-row .btn-primary,.btn-row .btn-secondary{margin:0}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{padding:7px 13px;background:var(--bg);border:1px solid var(--border);
+  border-radius:8px;font-size:13px;color:var(--sub);cursor:pointer;transition:all .15s;
+  -webkit-user-select:none}
+.chip:active{transform:scale(0.95)}
+.chip.on{background:var(--accent-bg);border-color:var(--border-sel);color:var(--accent-t);font-weight:600}
+
+/* Template cards */
+.t-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  margin-bottom:8px;overflow:hidden;animation:fadeUp .3s ease both}
+.t-card:nth-child(1){animation-delay:.03s}.t-card:nth-child(2){animation-delay:.06s}
+.t-card:nth-child(3){animation-delay:.09s}
+.t-head{display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;transition:background .15s}
+.t-head:active{background:var(--card-on)}
+.t-icon{width:42px;height:42px;border-radius:10px;background:var(--accent-bg);
+  display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.t-info{flex:1;min-width:0}
+.t-name{font-size:15px;font-weight:600}
+.t-meta{font-size:12px;color:var(--sub);margin-top:2px}
+.t-arrow{font-size:10px;color:var(--dim);transition:transform .22s;flex-shrink:0}
+.t-card.open .t-arrow{transform:rotate(180deg)}
+.t-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.t-card.open .t-body{display:block;animation:fadeUp .2s ease}
+.t-ex-row{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--sub)}
+.t-ex-row:last-of-type{border-bottom:none;padding-bottom:4px}
+.t-ex-name{color:var(--text);font-weight:500}
+.t-ex-scheme{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--accent);letter-spacing:0.5px}
+.t-btns{display:flex;gap:8px;margin-top:10px}
+.t-btn{flex:1;padding:9px;border:1px solid var(--border);border-radius:8px;background:none;
+  color:var(--sub);font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;
+  cursor:pointer;transition:all .15s}
+.t-btn:active{background:var(--card-on);transform:scale(0.96)}
+.t-btn.primary{background:var(--accent-bg);border-color:var(--border-sel);color:var(--accent-t)}
+
+/* Student detail */
+.sd-banner{background:var(--card);border-bottom:1px solid var(--border);padding:20px}
+.sd-top{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.sd-av{width:56px;height:56px;border-radius:50%;background:var(--accent-bg);
+  border:2px solid var(--border-sel);display:grid;place-items:center;
+  font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);flex-shrink:0}
+.sd-name{font-size:20px;font-weight:700}
+.sd-meta{font-size:13px;color:var(--sub);margin-top:2px}
+.sd-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sd-stat{background:var(--bg);border-radius:10px;padding:12px;text-align:center}
+.sd-stat-val{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1}
+.sd-stat-lbl{font-size:10px;color:var(--dim);margin-top:3px;text-transform:uppercase;letter-spacing:0.5px}
+
+/* Package bar */
+.pkg-bar-bg{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:8px 0 4px}
+.pkg-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .5s cubic-bezier(0.34,1.56,0.64,1)}
+.pkg-bar-fill.warn{background:var(--yellow)}
+.pkg-bar-fill.red{background:var(--red)}
+.pkg-meta{display:flex;justify-content:space-between;font-size:11px;color:var(--dim)}
+
+/* Deduct button */
+.deduct-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:15px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);
+  font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
+  width:100%;transition:all .15s;box-shadow:var(--shadow)}
+.deduct-btn:active{transform:scale(0.98);opacity:0.9}
+
+/* Session log */
+.slog-item{display:flex;align-items:center;gap:12px;padding:11px 20px;
+  border-bottom:1px solid var(--border)}
+.slog-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.slog-date{font-size:13px;font-weight:500}
+.slog-note{font-size:12px;color:var(--sub);margin-top:1px}
+.slog-ago{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
+
+/* Exercise builder */
+.ex-builder-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.ex-builder-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ex-builder-name{flex:1;padding:8px 10px;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;transition:border-color .15s}
+.ex-builder-name:focus{outline:none;border-color:var(--accent)}
+.ex-builder-name::placeholder{color:var(--dim)}
+.ex-builder-del{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0}
+.ex-builder-fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.mini-wrap{display:flex;flex-direction:column;gap:3px}
+.mini-input{padding:8px 4px;background:var(--card);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:'Bebas Neue','DM Sans',sans-serif;
+  font-size:15px;text-align:center;width:100%;transition:border-color .15s}
+.mini-input:focus{outline:none;border-color:var(--accent)}
+.mini-label{font-size:9px;color:var(--dim);text-align:center;text-transform:uppercase;letter-spacing:0.5px}
+
+/* Assign list */
+.assign-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:6px;cursor:pointer;transition:all .15s}
+.assign-item:active{transform:scale(0.98)}
+.assign-item.on{background:var(--accent-bg);border-color:var(--border-sel)}
+.assign-item-icon{width:36px;height:36px;border-radius:8px;background:var(--card);
+  display:grid;place-items:center;font-size:18px;flex-shrink:0}
+
+/* Quick row */
+.quick-row{display:flex;gap:8px;padding:0 16px 12px}
+.quick-btn{flex:1;padding:10px 6px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;font-size:12px;font-weight:500;color:var(--sub);cursor:pointer;
+  transition:all .15s;font-family:'DM Sans',sans-serif;text-align:center}
+.quick-btn:active{background:var(--card-on);transform:scale(0.96)}
+.quick-btn.accent{background:var(--accent-bg);border-color:var(--border-sel);color:var(--accent-t)}
+
+/* ═══ SCHEDULE / CALENDAR ═══ */
+.cal-wrap{padding:12px 16px 4px;border-bottom:1px solid var(--border)}
+.cal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.cal-nav{background:none;border:none;color:var(--accent);font-size:16px;cursor:pointer;
+  padding:4px 10px;transition:transform .15s}
+.cal-nav:active{transform:scale(0.85)}
+.cal-month{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px}
+.cal-days-hdr{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;text-align:center}
+.cal-dn{font-size:10px;color:var(--dim);font-family:'Bebas Neue',sans-serif;letter-spacing:0.5px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-c{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  cursor:pointer;transition:all .15s;font-size:13px;color:var(--text);position:relative}
+.cal-c:active{transform:scale(0.9)}
+.cal-c.empty{background:transparent;border:none;cursor:default}
+.cal-c.today{border:2px solid var(--accent);color:var(--accent);font-weight:700}
+.cal-c.sel{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cal-c.has-appt::after{content:'';position:absolute;bottom:3px;width:4px;height:4px;
+  border-radius:50%;background:var(--accent)}
+.cal-c.sel.has-appt::after{background:#fff}
+
+/* Appointment cards */
+.appt-day-hdr{padding:12px 20px 6px;display:flex;align-items:center;justify-content:space-between}
+.appt-day-lbl{font-size:13px;font-weight:600;color:var(--text)}
+.appt-day-sub{font-size:11px;color:var(--dim)}
+.appt-card{display:flex;align-items:center;gap:12px;padding:13px 16px;
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  margin:0 16px 8px;animation:fadeUp .25s ease;cursor:pointer;transition:background .15s}
+.appt-card:active{background:var(--card-on)}
+.appt-time-col{text-align:center;flex-shrink:0;min-width:42px}
+.appt-time{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);letter-spacing:0.5px;line-height:1}
+.appt-dur{font-size:10px;color:var(--dim)}
+.appt-divider{width:1px;height:36px;background:var(--border);flex-shrink:0}
+.appt-info{flex:1;min-width:0}
+.appt-student{font-size:14px;font-weight:600}
+.appt-detail{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appt-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.appt-status.pending{background:var(--yellow)}
+.appt-status.done{background:var(--accent)}
+.no-appt{padding:24px 20px;text-align:center;font-size:13px;color:var(--dim)}
+
+/* Link share box */
+.link-box{background:var(--bg);border:1px solid var(--border-sel);border-radius:10px;
+  padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.link-url{flex:1;font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-copy-btn{padding:7px 14px;background:var(--accent-bg);border:1px solid var(--border-sel);
+  color:var(--accent-t);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;
+  font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .15s}
+.link-copy-btn:active{transform:scale(0.95)}
+.wa-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:13px;background:#25D366;color:#fff;border:none;border-radius:12px;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.wa-btn:active{transform:scale(0.98);opacity:0.9}
+
+/* Assignment status badge */
+.assign-status{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;
+  border-radius:6px;font-size:11px;font-weight:600}
+.assign-status.pending{background:rgba(245,200,66,0.1);color:var(--yellow)}
+.assign-status.in_progress{background:var(--accent-bg);color:var(--accent-t)}
+.assign-status.completed{background:rgba(56,224,160,0.15);color:var(--accent)}
+
+/* Auth screen */
+#authScreen{position:fixed;inset:0;background:var(--bg);z-index:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:48px 32px;gap:0}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:6px;margin-bottom:6px}
+.auth-logo span{color:var(--accent)}
+.auth-badge{background:var(--accent-bg);border:1px solid var(--border-sel);
+  padding:5px 14px;border-radius:100px;font-size:11px;color:var(--accent-t);
+  font-weight:600;letter-spacing:1.5px;margin-bottom:24px}
+.auth-desc{font-size:14px;color:var(--sub);text-align:center;line-height:1.8;margin-bottom:32px}
+.auth-btn{width:100%;padding:16px;border:none;border-radius:14px;
+  font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:10px}
+.auth-btn.google{background:#fff;color:#1a1a1e;box-shadow:0 2px 16px rgba(0,0,0,0.12)}
+.auth-btn.google:active{transform:scale(0.98)}
+.auth-note{font-size:11px;color:var(--dim);text-align:center;line-height:1.7;margin-top:16px}
+
+/* Empty & toast */
+.empty{text-align:center;padding:48px 24px;color:var(--dim)}
+.empty-icon{font-size:40px;opacity:0.3;margin-bottom:12px}
+.empty-text{font-size:14px;line-height:2}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--card);border:1px solid var(--border);color:var(--text);
+  padding:10px 20px;font-size:13px;font-weight:500;opacity:0;
+  transition:all .3s cubic-bezier(0.22,1,0.36,1);z-index:999;
+  white-space:nowrap;pointer-events:none;border-radius:100px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH ═══ -->
+<div id="authScreen">
+  <div class="auth-logo">IRON LOG <span>·</span> COACH</div>
+  <div class="auth-badge">COACH EDITION</div>
+  <div class="auth-desc">管理學生堂數套餐、排程、派課表<br>專為香港個人教練設計</div>
+  <button class="auth-btn google" onclick="signInGoogle()">
+    <svg width="18" height="18" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+    以 Google 帳號登入
+  </button>
+  <div class="auth-note">只有教練帳號可以使用此版本<br>學生請打開教練發出的訓練連結</div>
+  <button onclick="enterDemoMode()" style="margin-top:16px;background:none;border:1px dashed var(--dim);
+    color:var(--dim);padding:10px 24px;border-radius:10px;font-family:'DM Sans',sans-serif;
+    font-size:13px;cursor:pointer;transition:all .15s">👁 預覽模式（Demo）</button>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="app" style="display:none">
+
+<header class="hdr">
+  <div>
+    <div class="logo">IRON LOG <span>·</span> COACH</div>
+    <div class="hdr-sub" id="hdrSub">—</div>
+  </div>
+  <div class="hdr-r">
+    <button class="icon-btn" onclick="confirmSignOut()">👤</button>
+  </div>
+</header>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="page-dashboard" class="page active">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="statStudents">—</div><div class="stat-lbl">學生人數</div></div>
+    <div class="stat-card"><div class="stat-val" id="statMonth">—</div><div class="stat-lbl">本月已上堂</div></div>
+  </div>
+  <div class="sec">⚠️ 注意事項</div>
+  <div class="alert-list" id="alertList"></div>
+  <div class="sec">👥 學生一覽</div>
+  <div class="list" id="dashStudentList"></div>
+</div>
+
+<!-- ═══ STUDENTS ═══ -->
+<div id="page-students" class="page">
+  <div class="list" id="studentList"></div>
+</div>
+
+<!-- ═══ SCHEDULE ═══ -->
+<div id="page-schedule" class="page">
+  <div class="cal-wrap">
+    <div class="cal-hdr">
+      <button class="cal-nav" onclick="chgCalMonth(-1)">❮</button>
+      <div class="cal-month" id="calMonth"></div>
+      <button class="cal-nav" onclick="chgCalMonth(1)">❯</button>
+    </div>
+    <div class="cal-days-hdr">
+      <span class="cal-dn">日</span><span class="cal-dn">一</span><span class="cal-dn">二</span>
+      <span class="cal-dn">三</span><span class="cal-dn">四</span><span class="cal-dn">五</span><span class="cal-dn">六</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+  <div id="apptSection"></div>
+</div>
+
+<!-- ═══ TEMPLATES ═══ -->
+<div id="page-templates" class="page">
+  <div class="list" id="templateList"></div>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div id="page-settings" class="page">
+  <div class="sec">👤 教練帳戶</div>
+  <div style="padding:0 16px 8px">
+    <div class="stat-card">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="font-size:36px" id="setAvatar">👤</div>
+        <div>
+          <div style="font-size:16px;font-weight:700" id="setName">—</div>
+          <div style="font-size:12px;color:var(--sub);margin-top:2px" id="setEmail">—</div>
+        </div>
+      </div>
+      <button class="btn-secondary btn-danger" style="margin-top:14px" onclick="confirmSignOut()">登出帳號</button>
+    </div>
+  </div>
+  <div class="sec">📱 關於</div>
+  <div style="padding:0 16px 20px">
+    <div class="stat-card">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--accent)">IRON LOG · COACH v1.0</div>
+      <div style="font-size:12px;color:var(--sub);margin-top:6px;line-height:1.8">
+        為香港個人教練而設計<br>
+        學生打開教練連結即可使用<br>
+        無需下載 App · 無需學生登入
+      </div>
+    </div>
+  </div>
+  <div class="sec">🔒 Firestore 安全規則</div>
+  <div style="padding:0 16px 20px">
+    <div class="stat-card">
+      <div style="font-size:11px;color:var(--dim);margin-bottom:8px">部署前請在 Firebase Console 設定以下規則：</div>
+      <pre style="font-size:11px;color:var(--accent-t);background:var(--bg);padding:10px;border-radius:8px;overflow-x:auto;line-height:1.6">match /coaches/{uid}/{doc=**} {
+  allow read,write: if request.auth.uid==uid;
+}
+match /coaches/{uid}/assignments/{aid} {
+  allow read,update: if true;
+}</pre>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Nav (5 tabs) -->
+<nav class="bnav">
+  <button class="nb on" id="nav-dashboard" onclick="showPage('dashboard')"><span class="nb-i">🏠</span><span class="nb-l">主頁</span></button>
+  <button class="nb" id="nav-students"  onclick="showPage('students')"><span class="nb-i">👥</span><span class="nb-l">學生</span></button>
+  <button class="nb" id="nav-schedule"  onclick="showPage('schedule')"><span class="nb-i">📅</span><span class="nb-l">日程</span></button>
+  <button class="nb" id="nav-templates" onclick="showPage('templates')"><span class="nb-i">📋</span><span class="nb-l">模板</span></button>
+  <button class="nb" id="nav-settings"  onclick="showPage('settings')"><span class="nb-i">⚙️</span><span class="nb-l">設定</span></button>
+</nav>
+
+<button class="fab" id="fab" onclick="onFab()">＋</button>
+</div><!-- end #app -->
+
+
+<!-- ══════════════════════ MODALS ══════════════════════ -->
+
+<!-- Add / Edit Student -->
+<div class="modal-bg" id="modalStudent">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalStudentTitle">新增學生</div>
+    <div class="modal-sub">填寫基本資料及堂數套餐</div>
+    <div class="field"><label class="field-label">姓名 *</label>
+      <input class="field-input" id="ns-name" placeholder="例：陳大文" type="text" maxlength="20"></div>
+    <div class="field-row">
+      <div class="field"><label class="field-label">電話</label>
+        <input class="field-input" id="ns-phone" placeholder="9XXX XXXX" type="tel"></div>
+      <div class="field"><label class="field-label">目標</label>
+        <select class="field-input" id="ns-goal">
+          <option value="減脂">減脂</option>
+          <option value="增肌">增肌</option>
+          <option value="強身健體">強身健體</option>
+          <option value="運動表現">運動表現</option>
+          <option value="康復訓練">康復訓練</option>
+        </select></div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:4px 0 14px"></div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:10px">📦 堂數套餐</div>
+    <div class="field-row">
+      <div class="field"><label class="field-label">堂數 *</label>
+        <input class="field-input" id="ns-sessions" placeholder="10" type="number" min="1" max="200"></div>
+      <div class="field"><label class="field-label">到期日</label>
+        <input class="field-input" id="ns-expiry" type="date"></div>
+    </div>
+    <div class="field"><label class="field-label">備註</label>
+      <input class="field-input" id="ns-notes" placeholder="例：每週二、四" type="text"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnSaveStudent" onclick="saveStudent()">新增學生</button>
+      <button class="btn-secondary" style="margin:0" onclick="closeModal('modalStudent')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Student Detail -->
+<div class="modal-bg" id="modalStudentDetail">
+  <div class="modal" style="padding:0 0 32px;max-height:92vh">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px 0">
+      <div class="modal-handle" style="margin:0"></div>
+      <button class="icon-btn" onclick="closeModal('modalStudentDetail')" style="font-size:12px">✕</button>
+    </div>
+    <div class="sd-banner">
+      <div class="sd-top">
+        <div class="sd-av" id="sdAv">A</div>
+        <div style="flex:1"><div class="sd-name" id="sdName">—</div><div class="sd-meta" id="sdMeta">—</div></div>
+      </div>
+      <div id="sdPkgBar"></div>
+      <div class="sd-grid" style="margin-top:12px">
+        <div class="sd-stat"><div class="sd-stat-val" id="sdRemain">—</div><div class="sd-stat-lbl">剩餘堂</div></div>
+        <div class="sd-stat"><div class="sd-stat-val" id="sdDone">—</div><div class="sd-stat-lbl">已上堂</div></div>
+        <div class="sd-stat"><div class="sd-stat-val" id="sdPkgTotal">—</div><div class="sd-stat-lbl">套餐堂數</div></div>
+      </div>
+    </div>
+    <div style="padding:14px 16px 0">
+      <button class="deduct-btn" onclick="openDeductModal()">✓ 今堂完成 — 扣 1 堂</button>
+    </div>
+    <div class="quick-row" style="margin-top:8px">
+      <button class="quick-btn accent" onclick="openAssignFromDetail()">📋 派課表</button>
+      <button class="quick-btn" onclick="openAddPackageModal()">📦 加套餐</button>
+      <button class="quick-btn" onclick="openEditStudentModal()">✏️ 編輯</button>
+      <button class="quick-btn" style="color:var(--red)" onclick="confirmDeleteStudent()">🗑</button>
+    </div>
+    <div class="sec" style="padding-top:8px">訓練記錄</div>
+    <div id="sdSessionList"></div>
+  </div>
+</div>
+
+<!-- Deduct Confirm -->
+<div class="modal-bg" id="modalDeduct">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="font-size:44px;margin-bottom:8px">💪</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px" id="deductTitle">扣除 1 堂</div>
+      <div style="font-size:13px;color:var(--sub);margin-top:4px" id="deductSub">—</div>
+    </div>
+    <div class="field"><label class="field-label">備註（可選）</label>
+      <input class="field-input" id="deductNote" placeholder="例：Push Day · 完成 4 組" type="text"></div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="confirmDeduct()">確認扣堂</button>
+      <button class="btn-secondary" style="margin:0" onclick="closeModal('modalDeduct')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Package -->
+<div class="modal-bg" id="modalAddPackage">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">加堂數套餐</div>
+    <div class="modal-sub" id="addPkgSub">新增套餐</div>
+    <div class="field-row">
+      <div class="field"><label class="field-label">堂數 *</label>
+        <input class="field-input" id="pkg-sessions" placeholder="10" type="number" min="1"></div>
+      <div class="field"><label class="field-label">到期日</label>
+        <input class="field-input" id="pkg-expiry" type="date"></div>
+    </div>
+    <div class="field"><label class="field-label">備註</label>
+      <input class="field-input" id="pkg-notes" placeholder="例：2025 Q3 套餐" type="text"></div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="savePackage()">加套餐</button>
+      <button class="btn-secondary" style="margin:0" onclick="closeModal('modalAddPackage')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Template -->
+<div class="modal-bg" id="modalTemplate">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalTemplateTitle">建立課表模板</div>
+    <div class="modal-sub">建立後可反覆派畀學生</div>
+    <div class="field-row">
+      <div class="field" style="flex:3"><label class="field-label">模板名稱 *</label>
+        <input class="field-input" id="tm-name" placeholder="例：初學者 Push Day" type="text"></div>
+      <div class="field" style="flex:1"><label class="field-label">圖示</label>
+        <input class="field-input" id="tm-icon" placeholder="💪" type="text" maxlength="2" style="text-align:center;font-size:20px"></div>
+    </div>
+    <div class="field"><label class="field-label">訓練類型</label>
+      <div class="chips" id="tmMuscleChips">
+        <div class="chip on" data-val="推">推</div><div class="chip" data-val="拉">拉</div>
+        <div class="chip" data-val="腿">腿</div><div class="chip" data-val="上半身">上半身</div>
+        <div class="chip" data-val="下半身">下半身</div><div class="chip" data-val="全身">全身</div>
+        <div class="chip" data-val="有氧">有氧</div><div class="chip" data-val="核心">核心</div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--border);margin:10px 0 14px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px">動作列表</div>
+      <button onclick="addExRow()" style="background:var(--accent-bg);border:1px solid var(--border-sel);
+        color:var(--accent-t);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;
+        cursor:pointer;font-family:'DM Sans',sans-serif">＋ 加動作</button>
+    </div>
+    <div id="tmExList"></div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn-primary" id="btnSaveTemplate" onclick="saveTemplate()">儲存模板</button>
+      <button class="btn-secondary" style="margin:0" onclick="closeModal('modalTemplate')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Template -->
+<div class="modal-bg" id="modalAssign">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">派課表</div>
+    <div class="modal-sub" id="assignSub">選擇課表模板</div>
+    <div id="assignList" style="margin-bottom:14px"></div>
+    <div class="field"><label class="field-label">備註（可選）</label>
+      <input class="field-input" id="assign-note" placeholder="例：注意膝蓋方向" type="text"></div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="confirmAssign()">派出課表 📤</button>
+      <button class="btn-secondary" style="margin:0" onclick="closeModal('modalAssign')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link Ready Modal -->
+<div class="modal-bg" id="modalLink">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="font-size:44px;margin-bottom:8px">🔗</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px">課表連結已生成</div>
+      <div style="font-size:13px;color:var(--sub);margin-top:6px" id="linkModalSub">發送畀學生即可</div>
+    </div>
+    <div class="link-box">
+      <div class="link-url" id="linkModalUrl">—</div>
+      <button class="link-copy-btn" onclick="copyLink()">複製</button>
+    </div>
+    <button class="wa-btn" onclick="shareToWhatsApp()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      WhatsApp 發送
+    </button>
+    <button class="btn-secondary" onclick="closeModal('modalLink')">完成</button>
+  </div>
+</div>
+
+<!-- Add Appointment -->
+<div class="modal-bg" id="modalAppt">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalApptTitle">新增預約</div>
+    <div class="modal-sub" id="modalApptSub">安排學生上堂時間</div>
+    <div class="field"><label class="field-label">學生 *</label>
+      <select class="field-input" id="appt-student"></select></div>
+    <div class="field-row">
+      <div class="field"><label class="field-label">日期 *</label>
+        <input class="field-input" id="appt-date" type="date"></div>
+      <div class="field"><label class="field-label">時間 *</label>
+        <input class="field-input" id="appt-time" type="time"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label class="field-label">時長</label>
+        <select class="field-input" id="appt-dur">
+          <option value="30">30 分鐘</option>
+          <option value="45">45 分鐘</option>
+          <option value="60" selected>60 分鐘</option>
+          <option value="75">75 分鐘</option>
+          <option value="90">90 分鐘</option>
+          <option value="120">2 小時</option>
+        </select></div>
+      <div class="field"><label class="field-label">課表模板</label>
+        <select class="field-input" id="appt-template">
+          <option value="">— 不指定 —</option>
+        </select></div>
+    </div>
+    <div class="field"><label class="field-label">備註</label>
+      <input class="field-input" id="appt-notes" placeholder="例：記得帶護膝" type="text"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnSaveAppt" onclick="saveAppt()">確認預約</button>
+      <button class="btn-secondary" style="margin:0" onclick="closeModal('modalAppt')">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════
+   FIREBASE CONFIG — 換成你嘅 config
+══════════════════════════════════════ */
+const FB_CONFIG = {
+  apiKey:            "AIzaSyDVib6xIEPWUMmh2Kdp5xisU0Cx6Zs6O3U",
+  authDomain:        "iron-log-7c180.firebaseapp.com",
+  projectId:         "iron-log-7c180",
+  storageBucket:     "iron-log-7c180.firebasestorage.app",
+  messagingSenderId: "172718642883",
+  appId:             "1:172718642883:web:5dc5c14fdd5bf56450b476"
+};
+
+// Only init Firebase if config looks real
+let auth, db;
+try {
+  firebase.initializeApp(FB_CONFIG);
+  auth = firebase.auth();
+  db   = firebase.firestore();
+} catch(e) { /* demo mode fallback */ }
+
+/* ══════════════════════════════════════
+   DEMO MODE — preview UI without Firebase
+══════════════════════════════════════ */
+function enterDemoMode() {
+  currentUser = { uid:'demo', displayName:'陳教練 Demo', email:'demo@ironlog.app' };
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('hdrSub').textContent  = '陳教練 Demo';
+  document.getElementById('setName').textContent  = '陳教練 Demo';
+  document.getElementById('setEmail').textContent = 'demo@ironlog.app';
+  document.getElementById('setAvatar').textContent = '陳';
+
+  // Inject demo data
+  students = [
+    { id:'s1', name:'阿明', phone:'9123 4567', goal:'增肌', packageSessions:7, packageTotal:10, packageExpiry:'2025-06-30', totalDeducted:3, notes:'週一三五' },
+    { id:'s2', name:'小雪', phone:'9876 5432', goal:'減脂', packageSessions:2, packageTotal:20, packageExpiry:'2025-05-15', totalDeducted:18, notes:'' },
+    { id:'s3', name:'大衛', phone:'6543 2109', goal:'運動表現', packageSessions:0, packageTotal:10, packageExpiry:'2025-04-01', totalDeducted:10, notes:'籃球員' },
+    { id:'s4', name:'Mandy', phone:'5678 9012', goal:'強身健體', packageSessions:15, packageTotal:15, packageExpiry:'2025-09-01', totalDeducted:0, notes:'' },
+  ];
+  templates = [
+    { id:'t1', name:'初學者 Push Day', icon:'💪', muscles:['推'], exercises:[{name:'上斜啞鈴臥推',sets:4,reps:'8-10',rest:150},{name:'雙槓撐體',sets:3,reps:'8-12',rest:120},{name:'啞鈴側平舉',sets:3,reps:'12-15',rest:90}] },
+    { id:'t2', name:'腿部訓練',        icon:'🦵', muscles:['腿'], exercises:[{name:'腿舉機',sets:4,reps:'10-12',rest:150},{name:'羅馬尼亞硬舉',sets:3,reps:'10-12',rest:120},{name:'腿彎舉機',sets:3,reps:'12-15',rest:90}] },
+    { id:'t3', name:'有氧燃脂',        icon:'🏃', muscles:['有氧'], exercises:[{name:'跑步機',sets:1,reps:'25分鐘',rest:0},{name:'跳繩',sets:4,reps:'2分鐘',rest:60}] },
+  ];
+  sessionLogs = [
+    { id:'l1', studentId:'s1', studentName:'阿明',  date:todayStr(),       note:'Push Day 完成全部' },
+    { id:'l2', studentId:'s2', studentName:'小雪',  date:todayStr(),       note:'有氧 30min' },
+    { id:'l3', studentId:'s1', studentName:'阿明',  date:yesterday(),      note:'腿日' },
+    { id:'l4', studentId:'s3', studentName:'大衛',  date:yesterday(),      note:'' },
+  ];
+  appointments = [
+    { id:'a1', studentId:'s1', studentName:'阿明',  date:todayStr(),  time:'10:00', durationMins:60, templateName:'初學者 Push Day', notes:'', status:'pending' },
+    { id:'a2', studentId:'s2', studentName:'小雪',  date:todayStr(),  time:'14:00', durationMins:45, templateName:'有氧燃脂', notes:'注意心率', status:'pending' },
+    { id:'a3', studentId:'s4', studentName:'Mandy', date:tomorrow(),  time:'09:30', durationMins:60, templateName:'腿部訓練', notes:'', status:'pending' },
+    { id:'a4', studentId:'s1', studentName:'阿明',  date:tomorrow(),  time:'11:00', durationMins:60, templateName:'初學者 Push Day', notes:'', status:'pending' },
+  ];
+
+  renderDashboard();
+}
+
+function yesterday(){ const d=new Date(); d.setDate(d.getDate()-1); return dateStr(d); }
+function tomorrow(){  const d=new Date(); d.setDate(d.getDate()+1); return dateStr(d); }
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let currentUser      = null;
+let students         = [];
+let templates        = [];
+let sessionLogs      = [];
+let appointments     = [];
+let currentPage      = 'dashboard';
+let activeStudentId  = null;
+let selectedTemplateId = null;
+let editingStudentId = null;
+let editingTemplateId = null;
+let editingApptId    = null;
+let exRowCount       = 0;
+// calendar state
+let calDate          = new Date();
+let selCalDate       = todayStr();
+// pending generated link
+let pendingLink      = '';
+let pendingLinkSub   = '';
+
+/* ══════════════════════════════════════
+   REFS
+══════════════════════════════════════ */
+const coachRef     = () => db.collection('coaches').doc(currentUser.uid);
+const studentsRef  = () => coachRef().collection('students');
+const templatesRef = () => coachRef().collection('templates');
+const sessionsRef  = () => coachRef().collection('sessions');
+const assignsRef   = () => coachRef().collection('assignments');
+const apptsRef     = () => coachRef().collection('appointments');
+
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
+function signInGoogle() {
+  if (!auth) { toast('請先填寫 Firebase config'); return; }
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+      .catch(e => toast('登入失敗：' + e.message));
+}
+function confirmSignOut() {
+  if (!confirm('確定登出？')) return;
+  if (!auth) { location.reload(); return; }
+  auth.signOut();
+}
+
+if (auth) auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('hdrSub').textContent  = user.displayName || user.email;
+    document.getElementById('setName').textContent  = user.displayName || '教練';
+    document.getElementById('setEmail').textContent = user.email;
+    document.getElementById('setAvatar').textContent = user.displayName ? user.displayName[0].toUpperCase() : '👤';
+    await loadAll();
+    renderDashboard();
+  } else {
+    currentUser = null;
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+}); // end auth.onAuthStateChanged
+
+async function loadAll() {
+  if (!db) return; // demo mode — data already injected
+  try {
+    const [sS, tS, seS, aS] = await Promise.all([
+      studentsRef().orderBy('createdAt','desc').get(),
+      templatesRef().orderBy('createdAt','desc').get(),
+      sessionsRef().orderBy('date','desc').limit(200).get(),
+      apptsRef().orderBy('date','asc').get()
+    ]);
+    students     = sS.docs.map(d => ({ id: d.id, ...d.data() }));
+    templates    = tS.docs.map(d => ({ id: d.id, ...d.data() }));
+    sessionLogs  = seS.docs.map(d => ({ id: d.id, ...d.data() }));
+    appointments = aS.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { toast('載入失敗：' + e.message); }
+}
+
+/* ══════════════════════════════════════
+   NAV
+══════════════════════════════════════ */
+function showPage(page) {
+  currentPage = page;
+  ['dashboard','students','schedule','templates','settings'].forEach(p => {
+    document.getElementById(`page-${p}`).classList.toggle('active', p === page);
+    document.getElementById(`nav-${p}`)?.classList.toggle('on', p === page);
+  });
+  document.getElementById('fab').style.display = page === 'settings' ? 'none' : 'grid';
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'students')  renderStudentList();
+  if (page === 'schedule')  renderSchedule();
+  if (page === 'templates') renderTemplateList();
+}
+
+function onFab() {
+  if (currentPage === 'templates') openAddTemplateModal();
+  else if (currentPage === 'schedule') openAddApptModal();
+  else openAddStudentModal();
+}
+
+/* ══════════════════════════════════════
+   DASHBOARD
+══════════════════════════════════════ */
+function renderDashboard() {
+  document.getElementById('statStudents').textContent = students.length;
+  const now = new Date();
+  const monthLogs = sessionLogs.filter(s => {
+    const d = new Date(s.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  document.getElementById('statMonth').textContent = monthLogs.length;
+
+  const alerts = [];
+  students.forEach(s => {
+    const r = s.packageSessions || 0;
+    if (r <= 0)  alerts.push({ type:'red',  icon:'🚨', text:`<b>${s.name}</b> 堂數已用完，請跟進`, sid:s.id });
+    else if (r<=3) alerts.push({ type:'warn', icon:'⚠️', text:`<b>${s.name}</b> 剩 ${r} 堂，快用完`, sid:s.id });
+    if (s.packageExpiry) {
+      const dl = Math.ceil((new Date(s.packageExpiry) - now) / 86400000);
+      if (dl < 0) alerts.push({ type:'red',  icon:'📅', text:`<b>${s.name}</b> 套餐已過期`, sid:s.id });
+      else if (dl<=14) alerts.push({ type:'warn', icon:'📅', text:`<b>${s.name}</b> 套餐 ${dl} 日後到期`, sid:s.id });
+    }
+  });
+
+  // Today's appointments
+  const todayApts = appointments.filter(a => a.date === todayStr())
+    .sort((a,b) => a.time.localeCompare(b.time));
+  if (todayApts.length) {
+    todayApts.forEach(a => {
+      alerts.unshift({ type:'info', icon:'📅', text:`<b>${a.time}</b> · ${a.studentName}${a.templateName ? ' · ' + a.templateName : ''}`, sid:null });
+    });
+  }
+
+  const alertEl = document.getElementById('alertList');
+  alertEl.innerHTML = alerts.length
+    ? alerts.map(a => `<div class="alert ${a.type}" ${a.sid ? `onclick="openStudentDetail('${a.sid}')"` : ''}>
+        <span class="alert-icon">${a.icon}</span>
+        <div class="alert-text">${a.text}</div>
+        ${a.sid ? '<span style="font-size:11px;color:var(--dim)">›</span>' : ''}
+      </div>`).join('')
+    : `<div style="padding:14px 0 6px;font-size:13px;color:var(--sub);text-align:center">✅ 一切正常，今日無預約</div>`;
+
+  document.getElementById('dashStudentList').innerHTML = students.length
+    ? students.map(s => studentCardHTML(s)).join('')
+    : `<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">未有學生<br>按右下角 ＋ 新增</div></div>`;
+}
+
+/* ══════════════════════════════════════
+   STUDENTS
+══════════════════════════════════════ */
+function badgeCls(n) { return n > 3 ? 'ok' : n > 0 ? 'warn' : 'red'; }
+
+function studentCardHTML(s) {
+  const r = s.packageSessions || 0;
+  return `<div class="s-card" onclick="openStudentDetail('${s.id}')">
+    <div class="s-av">${s.name ? s.name[0] : '?'}</div>
+    <div class="s-info">
+      <div class="s-name">${s.name}</div>
+      <div class="s-meta">${s.goal||'—'} · ${s.phone||'—'} · 已上 ${s.totalDeducted||0} 堂</div>
+    </div>
+    <div class="s-badge ${badgeCls(r)}">${r}</div>
+  </div>`;
+}
+
+function renderStudentList() {
+  document.getElementById('studentList').innerHTML = students.length
+    ? students.map(s => studentCardHTML(s)).join('')
+    : `<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">未有學生<br>按右下角 ＋ 新增</div></div>`;
+}
+
+function openAddStudentModal() {
+  editingStudentId = null;
+  document.getElementById('modalStudentTitle').textContent = '新增學生';
+  document.getElementById('btnSaveStudent').textContent = '新增學生';
+  document.getElementById('btnSaveStudent').onclick = saveStudent;
+  ['ns-name','ns-phone','ns-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ns-goal').value = '減脂';
+  document.getElementById('ns-sessions').value = '10';
+  const exp = new Date(); exp.setMonth(exp.getMonth()+3);
+  document.getElementById('ns-expiry').value = dateStr(exp);
+  openModal('modalStudent');
+}
+
+async function saveStudent() {
+  const name = document.getElementById('ns-name').value.trim();
+  if (!name) { toast('請輸入學生姓名'); return; }
+  if (!db) { toast('Demo 模式 — 無法儲存'); closeModal('modalStudent'); return; }
+  const n = parseInt(document.getElementById('ns-sessions').value) || 10;
+  const data = {
+    name, phone: document.getElementById('ns-phone').value.trim(),
+    goal: document.getElementById('ns-goal').value,
+    notes: document.getElementById('ns-notes').value.trim(),
+    packageSessions: n, packageTotal: n,
+    packageExpiry: document.getElementById('ns-expiry').value || null,
+    totalDeducted: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    const ref = await studentsRef().add(data);
+    students.unshift({ id:ref.id, ...data });
+    closeModal('modalStudent');
+    renderStudentList(); renderDashboard();
+    toast(`✅ ${name} 已加入`);
+  } catch(e) { toast('儲存失敗：'+e.message); }
+}
+
+function openEditStudentModal() {
+  const s = students.find(x=>x.id===activeStudentId); if(!s) return;
+  editingStudentId = activeStudentId;
+  document.getElementById('modalStudentTitle').textContent = '編輯學生';
+  document.getElementById('btnSaveStudent').textContent = '儲存更改';
+  document.getElementById('btnSaveStudent').onclick = updateStudent;
+  document.getElementById('ns-name').value     = s.name||'';
+  document.getElementById('ns-phone').value    = s.phone||'';
+  document.getElementById('ns-goal').value     = s.goal||'減脂';
+  document.getElementById('ns-sessions').value = s.packageSessions||'';
+  document.getElementById('ns-expiry').value   = s.packageExpiry||'';
+  document.getElementById('ns-notes').value    = s.notes||'';
+  closeModal('modalStudentDetail'); openModal('modalStudent');
+}
+
+async function updateStudent() {
+  const name = document.getElementById('ns-name').value.trim();
+  if (!name) { toast('請輸入姓名'); return; }
+  if (!db) { toast('Demo 模式 — 無法儲存'); closeModal('modalStudent'); return; }
+  const u = { name, phone:document.getElementById('ns-phone').value.trim(),
+    goal:document.getElementById('ns-goal').value, notes:document.getElementById('ns-notes').value.trim(),
+    packageSessions:parseInt(document.getElementById('ns-sessions').value)||0,
+    packageExpiry:document.getElementById('ns-expiry').value||null };
+  try {
+    await studentsRef().doc(editingStudentId).update(u);
+    const i = students.findIndex(x=>x.id===editingStudentId);
+    if(i>=0) students[i] = {...students[i],...u};
+    closeModal('modalStudent');
+    renderStudentList(); renderDashboard();
+    toast('✅ 已更新');
+  } catch(e) { toast('更新失敗'); }
+}
+
+function confirmDeleteStudent() {
+  const s = students.find(x=>x.id===activeStudentId); if(!s) return;
+  if (!confirm(`確定刪除「${s.name}」？`)) return;
+  if (!db) {
+    students=students.filter(x=>x.id!==activeStudentId);
+    closeModal('modalStudentDetail'); renderStudentList(); renderDashboard(); toast('已刪除（Demo）'); return;
+  }
+  studentsRef().doc(activeStudentId).delete().then(()=>{
+    students = students.filter(x=>x.id!==activeStudentId);
+    closeModal('modalStudentDetail'); renderStudentList(); renderDashboard();
+    toast('已刪除');
+  });
+}
+
+function openStudentDetail(sid) {
+  const s = students.find(x=>x.id===sid); if(!s) return;
+  activeStudentId = sid;
+  document.getElementById('sdAv').textContent   = s.name?s.name[0]:'?';
+  document.getElementById('sdName').textContent = s.name;
+  document.getElementById('sdMeta').textContent = `${s.goal||'—'} · ${s.phone||'未有電話'}`;
+  const r=s.packageSessions||0, tot=s.packageTotal||0;
+  const pct = tot>0?Math.max(0,Math.min(100,r/tot*100)):0;
+  const bCls = r>3?'':r>0?'warn':'red';
+  const expTxt = s.packageExpiry?`到期：${s.packageExpiry}`:'無到期日';
+  document.getElementById('sdPkgBar').innerHTML = `
+    <div class="pkg-meta"><span>堂數套餐</span><span>${expTxt}</span></div>
+    <div class="pkg-bar-bg"><div class="pkg-bar-fill ${bCls}" style="width:${pct}%"></div></div>
+    <div class="pkg-meta"><span style="color:var(--accent);font-weight:600">${r} 堂剩餘</span><span>共 ${tot} 堂</span></div>`;
+  document.getElementById('sdRemain').textContent   = r;
+  document.getElementById('sdDone').textContent     = s.totalDeducted||0;
+  document.getElementById('sdPkgTotal').textContent = tot;
+
+  const sList = sessionLogs.filter(se=>se.studentId===sid).slice(0,30);
+  document.getElementById('sdSessionList').innerHTML = sList.length
+    ? sList.map(se=>`<div class="slog-item">
+        <div class="slog-dot"></div>
+        <div style="flex:1"><div class="slog-date">${fmtDate(se.date)}</div>
+          ${se.note?`<div class="slog-note">${se.note}</div>`:''}
+        </div>
+        <div class="slog-ago">${daysAgo(se.date)}</div>
+      </div>`).join('')
+    : `<div style="padding:24px;text-align:center;font-size:13px;color:var(--dim)">未有訓練記錄</div>`;
+
+  openModal('modalStudentDetail');
+}
+
+/* ══════════════════════════════════════
+   DEDUCT
+══════════════════════════════════════ */
+function openDeductModal() {
+  const s = students.find(x=>x.id===activeStudentId); if(!s) return;
+  if((s.packageSessions||0)<=0){ toast('⚠️ 堂數已用完，請先補堂'); return; }
+  document.getElementById('deductTitle').textContent = `扣除 1 堂 — ${s.name}`;
+  document.getElementById('deductSub').textContent   = `扣除後剩餘：${(s.packageSessions||0)-1} 堂`;
+  document.getElementById('deductNote').value = '';
+  openModal('modalDeduct');
+}
+
+async function confirmDeduct() {
+  const s = students.find(x=>x.id===activeStudentId); if(!s) return;
+  if (!db) {
+    // Demo mode — simulate deduct locally
+    s.packageSessions = Math.max(0, (s.packageSessions||0) - 1);
+    s.totalDeducted = (s.totalDeducted||0) + 1;
+    const note = document.getElementById('deductNote').value.trim();
+    sessionLogs.unshift({ id:'demo-'+Date.now(), studentId:s.id, studentName:s.name, date:todayStr(), note });
+    closeModal('modalDeduct'); closeModal('modalStudentDetail');
+    renderStudentList(); renderDashboard();
+    toast(`✅ ${s.name} 扣 1 堂，剩 ${s.packageSessions} 堂`);
+    return;
+  }
+  const note = document.getElementById('deductNote').value.trim();
+  const newR = Math.max(0,(s.packageSessions||0)-1);
+  try {
+    const logData = { studentId:activeStudentId, studentName:s.name,
+      date:todayStr(), note:note||'', createdAt:firebase.firestore.FieldValue.serverTimestamp() };
+    const ref = await sessionsRef().add(logData);
+    sessionLogs.unshift({ id:ref.id, ...logData });
+    await studentsRef().doc(activeStudentId).update({
+      packageSessions:newR, totalDeducted:firebase.firestore.FieldValue.increment(1) });
+    const i = students.findIndex(x=>x.id===activeStudentId);
+    if(i>=0){ students[i].packageSessions=newR; students[i].totalDeducted=(students[i].totalDeducted||0)+1; }
+    closeModal('modalDeduct'); closeModal('modalStudentDetail');
+    renderStudentList(); renderDashboard();
+    toast(`✅ ${s.name} 扣 1 堂，剩 ${newR} 堂`);
+  } catch(e){ toast('扣堂失敗：'+e.message); }
+}
+
+/* ══════════════════════════════════════
+   PACKAGE
+══════════════════════════════════════ */
+function openAddPackageModal() {
+  const s = students.find(x=>x.id===activeStudentId);
+  document.getElementById('addPkgSub').textContent = `為 ${s?.name||'學生'} 新增套餐`;
+  document.getElementById('pkg-sessions').value = '10';
+  document.getElementById('pkg-notes').value = '';
+  const exp = new Date(); exp.setMonth(exp.getMonth()+3);
+  document.getElementById('pkg-expiry').value = dateStr(exp);
+  openModal('modalAddPackage');
+}
+
+async function savePackage() {
+  const add = parseInt(document.getElementById('pkg-sessions').value)||0;
+  if(add<=0){ toast('請輸入堂數'); return; }
+  if (!db) {
+    const s = students.find(x=>x.id===activeStudentId); if(!s) return;
+    s.packageSessions = (s.packageSessions||0) + add;
+    s.packageTotal    = (s.packageTotal||0) + add;
+    s.packageExpiry   = document.getElementById('pkg-expiry').value || null;
+    closeModal('modalAddPackage'); closeModal('modalStudentDetail');
+    renderStudentList(); renderDashboard();
+    toast(`✅ 加 ${add} 堂，現有 ${s.packageSessions} 堂`);
+    return;
+  }
+  const s = students.find(x=>x.id===activeStudentId); if(!s) return;
+  const newR=(s.packageSessions||0)+add, newT=(s.packageTotal||0)+add;
+  const expiry=document.getElementById('pkg-expiry').value||null;
+  try {
+    await studentsRef().doc(activeStudentId).update({
+      packageSessions:newR, packageTotal:newT, packageExpiry:expiry });
+    const i=students.findIndex(x=>x.id===activeStudentId);
+    if(i>=0){ students[i].packageSessions=newR; students[i].packageTotal=newT; students[i].packageExpiry=expiry; }
+    closeModal('modalAddPackage'); closeModal('modalStudentDetail');
+    renderStudentList(); renderDashboard();
+    toast(`✅ 加 ${add} 堂，現有 ${newR} 堂`);
+  } catch(e){ toast('失敗：'+e.message); }
+}
+
+/* ══════════════════════════════════════
+   TEMPLATES
+══════════════════════════════════════ */
+const PRESET_EX = {
+  '推':[{name:'上斜啞鈴臥推',sets:4,reps:'8-10',rest:150},{name:'雙槓撐體',sets:3,reps:'8-12',rest:120},{name:'啞鈴側平舉',sets:3,reps:'12-15',rest:90},{name:'繩索三頭肌下壓',sets:3,reps:'10-12',rest:90}],
+  '拉':[{name:'寬握滑輪下拉',sets:4,reps:'8-12',rest:150},{name:'俯身啞鈴划船',sets:4,reps:'8-10',rest:150},{name:'繩索面拉',sets:3,reps:'12-15',rest:90},{name:'啞鈴二頭肌彎舉',sets:3,reps:'10-12',rest:90}],
+  '腿':[{name:'腿舉機',sets:4,reps:'8-10',rest:150},{name:'啞鈴羅馬尼亞硬舉',sets:4,reps:'8-12',rest:150},{name:'坐姿腿伸展機',sets:3,reps:'12-15',rest:90},{name:'坐姿腿彎舉機',sets:3,reps:'10-12',rest:90}],
+  '上半身':[{name:'上斜啞鈴臥推',sets:4,reps:'8-10',rest:150},{name:'寬握滑輪下拉',sets:4,reps:'8-12',rest:150},{name:'坐姿啞鈴肩推',sets:3,reps:'10-12',rest:90},{name:'坐姿划船',sets:3,reps:'10-12',rest:90}],
+  '下半身':[{name:'深蹲',sets:4,reps:'8-10',rest:180},{name:'啞鈴羅馬尼亞硬舉',sets:4,reps:'8-12',rest:150},{name:'坐姿腿伸展機',sets:3,reps:'12-15',rest:90},{name:'站姿提踵',sets:4,reps:'15-20',rest:60}],
+  '全身':[{name:'深蹲',sets:4,reps:'8-10',rest:150},{name:'啞鈴臥推',sets:3,reps:'10-12',rest:120},{name:'滑輪下拉',sets:3,reps:'10-12',rest:90},{name:'啞鈴肩推',sets:3,reps:'10-12',rest:90}],
+  '有氧':[{name:'跑步機',sets:1,reps:'20分鐘',rest:0},{name:'單車機',sets:1,reps:'15分鐘',rest:0},{name:'跳繩',sets:4,reps:'2分鐘',rest:60}],
+  '核心':[{name:'捲腹',sets:4,reps:'15-20',rest:60},{name:'懸吊舉腿',sets:3,reps:'12-15',rest:60},{name:'棒式',sets:3,reps:'45秒',rest:45},{name:'俄羅斯轉體',sets:3,reps:'20次',rest:45}]
+};
+
+function renderTemplateList() {
+  document.getElementById('templateList').innerHTML = templates.length
+    ? templates.map((t,i)=>templateCardHTML(t,i)).join('')
+    : `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">未有課表模板<br>按右下角 ＋ 建立</div></div>`;
+}
+
+function templateCardHTML(t,i=0) {
+  return `<div class="t-card" id="tc-${t.id}" style="animation-delay:${i*.03}s">
+    <div class="t-head" onclick="document.getElementById('tc-${t.id}').classList.toggle('open')">
+      <div class="t-icon">${t.icon||'💪'}</div>
+      <div class="t-info"><div class="t-name">${t.name}</div>
+        <div class="t-meta">${(t.muscles||[]).join(' · ')} · ${(t.exercises||[]).length} 個動作</div></div>
+      <span class="t-arrow">▾</span>
+    </div>
+    <div class="t-body">
+      ${(t.exercises||[]).map(ex=>`<div class="t-ex-row">
+        <span class="t-ex-name">${ex.name}</span>
+        <span class="t-ex-scheme">${ex.sets}組 · ${ex.reps}</span></div>`).join('')}
+      <div class="t-btns">
+        <button class="t-btn primary" onclick="openAssignFromTemplate('${t.id}');event.stopPropagation()">📤 派出</button>
+        <button class="t-btn" onclick="openEditTemplateModal('${t.id}');event.stopPropagation()">✏️ 編輯</button>
+        <button class="t-btn" onclick="deleteTemplate('${t.id}','${t.name.replace(/'/g,"\\'")}');event.stopPropagation()">🗑 刪除</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openAddTemplateModal() {
+  editingTemplateId = null;
+  document.getElementById('modalTemplateTitle').textContent = '建立課表模板';
+  document.getElementById('btnSaveTemplate').textContent = '儲存模板';
+  document.getElementById('btnSaveTemplate').onclick = saveTemplate;
+  document.getElementById('tm-name').value = '';
+  document.getElementById('tm-icon').value = '💪';
+  document.getElementById('tmExList').innerHTML = ''; exRowCount = 0;
+  document.querySelectorAll('#tmMuscleChips .chip').forEach((c,i)=>c.classList.toggle('on',i===0));
+  (PRESET_EX['推']||[]).forEach(ex=>addExRow(ex.name,ex.sets,ex.reps,ex.rest));
+  openModal('modalTemplate');
+}
+
+function openEditTemplateModal(tid) {
+  const t = templates.find(x=>x.id===tid); if(!t) return;
+  editingTemplateId = tid;
+  document.getElementById('modalTemplateTitle').textContent = '編輯課表模板';
+  document.getElementById('btnSaveTemplate').textContent = '儲存更改';
+  document.getElementById('btnSaveTemplate').onclick = updateTemplate;
+  document.getElementById('tm-name').value = t.name||'';
+  document.getElementById('tm-icon').value = t.icon||'💪';
+  document.getElementById('tmExList').innerHTML = ''; exRowCount = 0;
+  document.querySelectorAll('#tmMuscleChips .chip').forEach(c=>c.classList.toggle('on',(t.muscles||[]).includes(c.dataset.val)));
+  (t.exercises||[]).forEach(ex=>addExRow(ex.name,ex.sets,ex.reps,ex.rest));
+  openModal('modalTemplate');
+}
+
+document.addEventListener('click', e => {
+  const chip = e.target.closest('#tmMuscleChips .chip'); if(!chip) return;
+  document.querySelectorAll('#tmMuscleChips .chip').forEach(c=>c.classList.remove('on'));
+  chip.classList.add('on');
+  if (PRESET_EX[chip.dataset.val] && !editingTemplateId) {
+    document.getElementById('tmExList').innerHTML = ''; exRowCount = 0;
+    PRESET_EX[chip.dataset.val].forEach(ex=>addExRow(ex.name,ex.sets,ex.reps,ex.rest));
+  }
+});
+
+function addExRow(name='',sets=3,reps='10-12',rest=90) {
+  const id = ++exRowCount;
+  const div = document.createElement('div');
+  div.className = 'ex-builder-item'; div.id = `exr-${id}`;
+  div.innerHTML = `<div class="ex-builder-top">
+    <input class="ex-builder-name" placeholder="動作名稱" value="${name}">
+    <button class="ex-builder-del" onclick="document.getElementById('exr-${id}').remove()">✕</button>
+  </div>
+  <div class="ex-builder-fields">
+    <div class="mini-wrap"><input class="mini-input" type="number" value="${sets}" min="1" max="20" id="exr-sets-${id}"><div class="mini-label">組數</div></div>
+    <div class="mini-wrap"><input class="mini-input" value="${reps}" placeholder="次數" id="exr-reps-${id}"><div class="mini-label">次數</div></div>
+    <div class="mini-wrap"><input class="mini-input" type="number" value="${rest}" id="exr-rest-${id}"><div class="mini-label">休息秒</div></div>
+  </div>`;
+  document.getElementById('tmExList').appendChild(div);
+}
+
+function collectTemplateData() {
+  const name = document.getElementById('tm-name').value.trim();
+  if (!name) { toast('請輸入模板名稱'); return null; }
+  return {
+    name, icon:document.getElementById('tm-icon').value||'💪',
+    muscles:[...document.querySelectorAll('#tmMuscleChips .chip.on')].map(c=>c.dataset.val),
+    exercises:[...document.getElementById('tmExList').querySelectorAll('.ex-builder-item')].map(row=>({
+      name:row.querySelector('.ex-builder-name').value.trim()||'未命名動作',
+      sets:parseInt(row.querySelector('[id^="exr-sets"]').value)||3,
+      reps:row.querySelector('[id^="exr-reps"]').value||'10',
+      rest:parseInt(row.querySelector('[id^="exr-rest"]').value)||90
+    })).filter(ex=>ex.name)
+  };
+}
+
+async function saveTemplate() {
+  const data = collectTemplateData(); if(!data) return;
+  if (!db) {
+    templates.unshift({ id:'demo-t-'+Date.now(), ...data });
+    closeModal('modalTemplate'); renderTemplateList();
+    toast(`✅ 「${data.name}」已儲存（Demo）`); return;
+  }
+  try {
+    const ref = await templatesRef().add({...data, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    templates.unshift({id:ref.id,...data});
+    closeModal('modalTemplate'); renderTemplateList();
+    toast(`✅ 「${data.name}」已儲存`);
+  } catch(e){ toast('儲存失敗：'+e.message); }
+}
+
+async function updateTemplate() {
+  const data = collectTemplateData(); if(!data) return;
+  if (!db) {
+    const i=templates.findIndex(x=>x.id===editingTemplateId);
+    if(i>=0) templates[i]={...templates[i],...data};
+    closeModal('modalTemplate'); renderTemplateList(); toast('✅ 已更新（Demo）'); return;
+  }
+  try {
+    await templatesRef().doc(editingTemplateId).update(data);
+    const i=templates.findIndex(x=>x.id===editingTemplateId);
+    if(i>=0) templates[i]={...templates[i],...data};
+    closeModal('modalTemplate'); renderTemplateList(); toast('✅ 已更新');
+  } catch(e){ toast('更新失敗'); }
+}
+
+async function deleteTemplate(tid,tname) {
+  if(!confirm(`確定刪除「${tname}」？`)) return;
+  if (!db) { templates=templates.filter(t=>t.id!==tid); renderTemplateList(); toast('已刪除（Demo）'); return; }
+  await templatesRef().doc(tid).delete();
+  templates=templates.filter(t=>t.id!==tid);
+  renderTemplateList(); toast('已刪除');
+}
+
+/* ══════════════════════════════════════
+   ASSIGN + LINK GENERATION
+══════════════════════════════════════ */
+function openAssignFromDetail() {
+  selectedTemplateId = null;
+  const s = students.find(x=>x.id===activeStudentId);
+  document.getElementById('assignSub').textContent = `派畀：${s?.name||'學生'} — 選擇模板`;
+  renderAssignList('template');
+  document.getElementById('assign-note').value = '';
+  openModal('modalAssign');
+}
+
+function openAssignFromTemplate(tid) {
+  selectedTemplateId = tid; activeStudentId = null;
+  document.getElementById('assignSub').textContent = '選擇要派的學生';
+  renderAssignList('student');
+  document.getElementById('assign-note').value = '';
+  openModal('modalAssign');
+}
+
+function renderAssignList(mode) {
+  const el = document.getElementById('assignList');
+  if (mode === 'template') {
+    el.innerHTML = templates.length
+      ? templates.map(t=>`<div class="assign-item ${selectedTemplateId===t.id?'on':''}"
+          onclick="selectedTemplateId='${t.id}';renderAssignList('template')">
+          <div class="assign-item-icon">${t.icon||'💪'}</div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600">${t.name}</div>
+            <div style="font-size:12px;color:var(--sub)">${(t.muscles||[]).join(' · ')} · ${(t.exercises||[]).length} 動作</div></div>
+          ${selectedTemplateId===t.id?'<span style="color:var(--accent);font-size:18px">✓</span>':''}
+        </div>`).join('')
+      : `<div style="text-align:center;padding:20px;font-size:13px;color:var(--dim)">未有模板，請先建立</div>`;
+  } else {
+    el.innerHTML = students.length
+      ? students.map(s=>`<div class="assign-item ${activeStudentId===s.id?'on':''}"
+          onclick="activeStudentId='${s.id}';renderAssignList('student')">
+          <div class="assign-item-icon" style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent)">${s.name[0]}</div>
+          <div style="flex:1"><div style="font-size:14px;font-weight:600">${s.name}</div>
+            <div style="font-size:12px;color:var(--sub)">${s.goal||'—'} · 剩 ${s.packageSessions||0} 堂</div></div>
+          ${activeStudentId===s.id?'<span style="color:var(--accent);font-size:18px">✓</span>':''}
+        </div>`).join('')
+      : `<div style="text-align:center;padding:20px;font-size:13px;color:var(--dim)">未有學生</div>`;
+  }
+}
+
+async function confirmAssign() {
+  if (!activeStudentId)    { toast('請選擇學生'); return; }
+  if (!selectedTemplateId) { toast('請選擇模板'); return; }
+  if (!db) {
+    const s=students.find(x=>x.id===activeStudentId);
+    const t=templates.find(x=>x.id===selectedTemplateId);
+    closeModal('modalAssign');
+    showLinkModal(`ironlog-student.html?c=DEMO_UID&a=DEMO_ID`, `${t.name} → ${s.name}`);
+    return;
+  }
+  const s = students.find(x=>x.id===activeStudentId);
+  const t = templates.find(x=>x.id===selectedTemplateId);
+  const note = document.getElementById('assign-note').value.trim();
+  try {
+    const assignData = {
+      studentId:activeStudentId, studentName:s.name,
+      coachName:currentUser.displayName||'教練',
+      templateId:selectedTemplateId, templateName:t.name,
+      templateSnapshot:t, date:todayStr(), note:note||'',
+      status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    };
+    const ref = await assignsRef().add(assignData);
+    closeModal('modalAssign');
+
+    // Generate and show link
+    const link = buildStudentLink(currentUser.uid, ref.id);
+    showLinkModal(link, `${t.name} → ${s.name}`);
+  } catch(e){ toast('派出失敗：'+e.message); }
+}
+
+function buildStudentLink(coachId, assignId) {
+  const base = location.origin + location.pathname.replace('ironlog-coach.html','ironlog-student.html');
+  return `${base}?c=${coachId}&a=${assignId}`;
+}
+
+function showLinkModal(link, sub) {
+  pendingLink    = link;
+  pendingLinkSub = sub;
+  document.getElementById('linkModalSub').textContent = sub;
+  document.getElementById('linkModalUrl').textContent = link;
+  openModal('modalLink');
+}
+
+function copyLink() {
+  navigator.clipboard.writeText(pendingLink).then(()=>toast('✅ 連結已複製！'));
+}
+
+function shareToWhatsApp() {
+  const s = students.find(x=>x.id===activeStudentId);
+  const msg = `💪 今日訓練課表\n${pendingLinkSub}\n\n${pendingLink}\n\n打開連結開始訓練！`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+/* ══════════════════════════════════════
+   SCHEDULE / CALENDAR
+══════════════════════════════════════ */
+function renderSchedule() {
+  renderCalendar();
+}
+
+function chgCalMonth(d) {
+  calDate.setMonth(calDate.getMonth()+d);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const y=calDate.getFullYear(), m=calDate.getMonth();
+  document.getElementById('calMonth').textContent = `${y}年 ${m+1}月`;
+  const firstDay=new Date(y,m,1).getDay();
+  const dim=new Date(y,m+1,0).getDate();
+  const td=todayStr();
+  let html='';
+  for(let i=0;i<firstDay;i++) html+=`<div class="cal-c empty"></div>`;
+  for(let i=1;i<=dim;i++){
+    const dStr=`${y}-${String(m+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+    const hasAppt=appointments.some(a=>a.date===dStr);
+    let cls='cal-c';
+    if(dStr===td) cls+=' today';
+    if(dStr===selCalDate) cls+=' sel';
+    if(hasAppt) cls+=' has-appt';
+    html+=`<div class="${cls}" onclick="selectCalDate('${dStr}')">${i}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=html;
+  renderApptList();
+}
+
+function selectCalDate(d) {
+  selCalDate=d; renderCalendar();
+}
+
+function renderApptList() {
+  const dayApts = appointments
+    .filter(a=>a.date===selCalDate)
+    .sort((a,b)=>a.time.localeCompare(b.time));
+
+  const el = document.getElementById('apptSection');
+  const label = selCalDate===todayStr()?'今日':''+fmtDate(selCalDate);
+
+  let html = `<div class="appt-day-hdr">
+    <div class="appt-day-lbl">${label}</div>
+    <div class="appt-day-sub">${dayApts.length} 個預約</div>
+  </div>`;
+
+  if (!dayApts.length) {
+    html += `<div class="no-appt">呢日未有預約<br><span style="color:var(--accent);cursor:pointer" onclick="openAddApptModal()">＋ 新增預約</span></div>`;
+  } else {
+    html += dayApts.map(a=>`
+      <div class="appt-card" onclick="openEditApptModal('${a.id}')">
+        <div class="appt-time-col">
+          <div class="appt-time">${a.time}</div>
+          <div class="appt-dur">${a.durationMins||60}分</div>
+        </div>
+        <div class="appt-divider"></div>
+        <div class="appt-info">
+          <div class="appt-student">${a.studentName}</div>
+          <div class="appt-detail">${a.templateName||'未指定課表'}${a.notes?' · '+a.notes:''}</div>
+        </div>
+        <div class="appt-status ${a.status||'pending'}"></div>
+      </div>`).join('');
+  }
+  el.innerHTML=html;
+}
+
+/* Add/Edit Appointment */
+function openAddApptModal() {
+  editingApptId = null;
+  document.getElementById('modalApptTitle').textContent = '新增預約';
+  document.getElementById('btnSaveAppt').textContent = '確認預約';
+  document.getElementById('btnSaveAppt').onclick = saveAppt;
+
+  // Populate student dropdown
+  const sel = document.getElementById('appt-student');
+  sel.innerHTML = students.length
+    ? students.map(s=>`<option value="${s.id}" data-name="${s.name}">${s.name}</option>`).join('')
+    : '<option value="">未有學生</option>';
+
+  // Populate template dropdown
+  const tsel = document.getElementById('appt-template');
+  tsel.innerHTML = '<option value="">— 不指定 —</option>' +
+    templates.map(t=>`<option value="${t.id}" data-name="${t.name}">${t.name}</option>`).join('');
+
+  document.getElementById('appt-date').value  = selCalDate || todayStr();
+  document.getElementById('appt-time').value  = '09:00';
+  document.getElementById('appt-dur').value   = '60';
+  document.getElementById('appt-notes').value = '';
+  openModal('modalAppt');
+}
+
+function openEditApptModal(aid) {
+  const a = appointments.find(x=>x.id===aid); if(!a) return;
+  editingApptId = aid;
+  document.getElementById('modalApptTitle').textContent = '編輯預約';
+  document.getElementById('btnSaveAppt').textContent = '儲存更改';
+  document.getElementById('btnSaveAppt').onclick = updateAppt;
+
+  const sel = document.getElementById('appt-student');
+  sel.innerHTML = students.map(s=>`<option value="${s.id}" data-name="${s.name}" ${s.id===a.studentId?'selected':''}>${s.name}</option>`).join('');
+  const tsel = document.getElementById('appt-template');
+  tsel.innerHTML = '<option value="">— 不指定 —</option>' +
+    templates.map(t=>`<option value="${t.id}" data-name="${t.name}" ${t.id===a.templateId?'selected':''}>${t.name}</option>`).join('');
+
+  document.getElementById('appt-date').value  = a.date||'';
+  document.getElementById('appt-time').value  = a.time||'09:00';
+  document.getElementById('appt-dur').value   = a.durationMins||60;
+  document.getElementById('appt-notes').value = a.notes||'';
+  openModal('modalAppt');
+}
+
+function collectApptData() {
+  const sel = document.getElementById('appt-student');
+  const sid  = sel.value;
+  const sname = sel.options[sel.selectedIndex]?.dataset.name || '';
+  const date = document.getElementById('appt-date').value;
+  const time = document.getElementById('appt-time').value;
+  if (!sid)  { toast('請選擇學生'); return null; }
+  if (!date) { toast('請選擇日期'); return null; }
+  if (!time) { toast('請選擇時間'); return null; }
+  const tsel = document.getElementById('appt-template');
+  const tid  = tsel.value;
+  const tname = tid ? (tsel.options[tsel.selectedIndex]?.dataset.name||'') : '';
+  return { studentId:sid, studentName:sname, date, time,
+    durationMins:parseInt(document.getElementById('appt-dur').value)||60,
+    templateId:tid||null, templateName:tname||null,
+    notes:document.getElementById('appt-notes').value.trim(),
+    status:'pending' };
+}
+
+async function saveAppt() {
+  const data = collectApptData(); if(!data) return;
+  if (!db) {
+    appointments.push({ id:'demo-a-'+Date.now(), ...data });
+    appointments.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+    closeModal('modalAppt'); renderCalendar();
+    toast(`✅ ${data.time} ${data.studentName} 已預約（Demo）`); return;
+  }
+  try {
+    const ref = await apptsRef().add({...data, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    appointments.push({id:ref.id,...data});
+    appointments.sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time));
+    closeModal('modalAppt'); renderCalendar();
+    toast(`✅ ${data.time} ${data.studentName} 已預約`);
+  } catch(e){ toast('失敗：'+e.message); }
+}
+
+async function updateAppt() {
+  const data = collectApptData(); if(!data) return;
+  if (!db) {
+    const i=appointments.findIndex(x=>x.id===editingApptId);
+    if(i>=0) appointments[i]={...appointments[i],...data};
+    closeModal('modalAppt'); renderCalendar(); toast('✅ 已更新（Demo）'); return;
+  }
+  try {
+    await apptsRef().doc(editingApptId).update(data);
+    const i=appointments.findIndex(x=>x.id===editingApptId);
+    if(i>=0) appointments[i]={...appointments[i],...data};
+    closeModal('modalAppt'); renderCalendar();
+    toast('✅ 已更新');
+  } catch(e){ toast('更新失敗'); }
+}
+
+/* ══════════════════════════════════════
+   MODAL HELPERS
+══════════════════════════════════════ */
+function openModal(id)  { document.getElementById(id).classList.add('on'); }
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+document.querySelectorAll('.modal-bg').forEach(bg=>
+  bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('on'); }));
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function todayStr(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function dateStr(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function fmtDate(s){if(!s)return'—';const d=new Date(s+'T12:00:00'),w=['日','一','二','三','四','五','六'];return`${d.getMonth()+1}月${d.getDate()}日 (${w[d.getDay()]})`;}
+function daysAgo(s){if(!s)return'';const diff=Math.floor((Date.now()-new Date(s+'T12:00:00'))/86400000);if(diff===0)return'今日';if(diff===1)return'昨日';if(diff<7)return`${diff}日前`;if(diff<30)return`${Math.floor(diff/7)}週前`;return`${Math.floor(diff/30)}個月前`;}
+
+let toastTm;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTm);toastTm=setTimeout(()=>t.classList.remove('on'),2500);}
+</script>
+</body>
+</html>
