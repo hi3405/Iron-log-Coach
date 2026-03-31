@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>今日訓練</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#09090b;--card:#111114;--card-on:#161619;
+  --border:rgba(255,255,255,0.07);--border-sel:rgba(56,224,160,0.35);
+  --text:#f0f0f5;--sub:#777788;--dim:#444455;
+  --accent:#38e0a0;--accent-t:#2bc88a;--accent-bg:rgba(56,224,160,0.08);
+  --shadow:0 4px 24px rgba(56,224,160,0.18);
+  --red:#ef5350;--yellow:#f5c842;--r:14px;
+}
+@media(prefers-color-scheme:light){:root{
+  --bg:#f5f5f7;--card:#ffffff;--card-on:#f0f0f2;
+  --border:rgba(0,0,0,0.07);--border-sel:rgba(22,163,108,0.4);
+  --text:#1a1a1e;--sub:#6b6b7b;--dim:#a0a0ae;
+  --accent:#16a36c;--accent-t:#128a5b;--accent-bg:rgba(22,163,108,0.07);
+  --shadow:0 4px 20px rgba(22,163,108,0.15);
+  --red:#d32f2f;--yellow:#e6a800;
+}}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;
+  max-width:430px;margin:0 auto;min-height:100vh;-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pop{0%{transform:scale(0.92)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+
+/* ── States ── */
+.screen{display:none;min-height:100vh}
+.screen.on{display:block}
+
+/* ── Loading ── */
+#screenLoading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:13px;color:var(--dim)}
+
+/* ── Error / Done ── */
+.center-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:32px;text-align:center;gap:12px}
+.big-icon{font-size:56px;margin-bottom:4px}
+.big-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px}
+.big-sub{font-size:14px;color:var(--sub);line-height:1.7}
+
+/* ── Workout Header ── */
+.wo-banner{background:var(--card);border-bottom:1px solid var(--border);padding:20px 20px 16px}
+.wo-coach{font-size:11px;color:var(--dim);font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;margin-bottom:2px}
+.wo-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--text)}
+.wo-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.wo-tag{font-size:10px;font-family:'Bebas Neue',sans-serif;letter-spacing:1px;
+  padding:3px 9px;border:1px solid var(--border);color:var(--dim);border-radius:6px}
+.wo-student{font-size:13px;color:var(--sub);margin-top:4px}
+
+/* ── Progress ── */
+.prog-wrap{padding:10px 20px 6px;display:flex;align-items:center;gap:10px}
+.prog-bar{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s cubic-bezier(0.34,1.56,0.64,1)}
+.prog-txt{font-size:11px;color:var(--dim);white-space:nowrap}
+
+/* ── Exercise Cards ── */
+.ex-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  margin:8px 16px;overflow:hidden;transition:border-color .2s;animation:fadeUp .3s ease both}
+.ex-card.done{border-color:var(--border-sel)}
+.ex-head{display:flex;align-items:center;padding:13px 14px;gap:10px;cursor:pointer;transition:background .12s}
+.ex-head:active{background:var(--card-on)}
+.ex-num{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);width:22px;text-align:center;flex-shrink:0}
+.ex-info{flex:1;min-width:0}
+.ex-name{font-size:14px;font-weight:600}
+.ex-scheme{font-size:11px;color:var(--dim);margin-top:2px}
+.ex-status{flex-shrink:0;text-align:right}
+.ex-done-badge{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--accent);letter-spacing:0.5px}
+.ex-arrow{font-size:10px;color:var(--dim);transition:transform .22s;flex-shrink:0}
+.ex-card.open .ex-arrow{transform:rotate(180deg)}
+
+.ex-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ex-card.open .ex-body{display:block;animation:fadeUp .18s ease}
+
+/* ── Set Rows ── */
+.set-hdr{display:grid;grid-template-columns:26px 1fr 1fr 40px;gap:6px;padding:8px 0 4px}
+.set-hdr span{font-size:10px;color:var(--dim);text-align:center;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.5px}
+.set-row{display:grid;grid-template-columns:26px 1fr 1fr 40px;gap:6px;margin-bottom:6px;
+  align-items:center;animation:fadeUp .15s ease}
+.set-n{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--dim);text-align:center}
+.s-inp{background:var(--bg);border:1px solid var(--border);color:var(--text);
+  font-family:'Bebas Neue','DM Sans',sans-serif;font-size:16px;text-align:center;
+  padding:9px 4px;width:100%;border-radius:8px;transition:border-color .15s;-webkit-appearance:none}
+.s-inp:focus{outline:none;border-color:var(--accent)}
+.s-inp.kg{color:var(--accent)}
+.ck{width:40px;height:40px;border:2px solid var(--border);background:none;cursor:pointer;
+  display:grid;place-items:center;color:transparent;font-size:13px;font-weight:900;
+  border-radius:8px;transition:all .2s cubic-bezier(0.34,1.56,0.64,1);-webkit-appearance:none}
+.ck.on{background:var(--accent);border-color:var(--accent);color:#fff;animation:pop .25s ease}
+
+.note-area{width:100%;margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);
+  color:var(--sub);font-family:'DM Sans',sans-serif;font-size:13px;resize:none;border-radius:8px;
+  transition:border-color .15s}
+.note-area:focus{outline:none;color:var(--text);border-color:var(--accent)}
+
+/* ── Check-in banner ── */
+.checkin-banner{margin:12px 16px 0;background:var(--accent-bg);border:1px solid var(--border-sel);
+  border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:12px;animation:fadeUp .3s ease}
+.checkin-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);flex-shrink:0;
+  box-shadow:0 0 0 4px rgba(56,224,160,0.2)}
+.checkin-text{flex:1;font-size:13px;color:var(--accent-t);font-weight:500}
+.checkin-time{font-size:11px;color:var(--dim)}
+
+/* ── Submit button ── */
+.submit-wrap{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg);
+  border-top:1px solid var(--border);z-index:30}
+.submit-btn{width:100%;padding:15px;border:none;border-radius:var(--r);
+  font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;
+  transition:all .2s;background:var(--accent);color:#fff;box-shadow:var(--shadow)}
+.submit-btn:active{transform:scale(0.98)}
+.submit-btn:disabled{background:var(--card);color:var(--dim);box-shadow:none;cursor:default}
+
+/* ── Done screen ── */
+#screenDone{background:var(--bg)}
+.done-vol{font-family:'Bebas Neue',sans-serif;font-size:56px;color:var(--accent);
+  letter-spacing:2px;line-height:1;animation:pop .4s ease .1s both}
+.done-vol-lbl{font-size:12px;color:var(--dim);letter-spacing:1.5px;font-family:'Bebas Neue',sans-serif;margin-top:4px}
+.done-ex-list{width:100%;max-width:340px;margin-top:20px;text-align:left}
+.done-ex-row{display:flex;justify-content:space-between;padding:10px 14px;
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  margin-bottom:6px;font-size:13px;animation:fadeUp .3s ease both}
+.done-ex-row:nth-child(1){animation-delay:.05s}.done-ex-row:nth-child(2){animation-delay:.1s}
+.done-ex-row:nth-child(3){animation-delay:.15s}.done-ex-row:nth-child(4){animation-delay:.2s}
+.done-ex-name{color:var(--sub)}
+.done-ex-kg{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--accent);letter-spacing:0.5px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(16px);
+  background:var(--card);border:1px solid var(--border);color:var(--text);
+  padding:10px 20px;font-size:13px;font-weight:500;opacity:0;
+  transition:all .3s cubic-bezier(0.22,1,0.36,1);z-index:999;
+  white-space:nowrap;pointer-events:none;border-radius:100px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ── Loading ── -->
+<div id="screenLoading" class="screen on" style="display:flex">
+  <div class="spinner"></div>
+  <div class="load-text">載入訓練中...</div>
+</div>
+
+<!-- ── Error ── -->
+<div id="screenError" class="screen">
+  <div class="center-screen">
+    <div class="big-icon">😕</div>
+    <div class="big-title">出現問題</div>
+    <div class="big-sub" id="errorMsg">連結格式不正確<br>請向教練索取連結</div>
+  </div>
+</div>
+
+<!-- ── Waiting (no assignment yet) ── -->
+<div id="screenWaiting" class="screen">
+  <div class="center-screen">
+    <div class="big-icon">⏳</div>
+    <div class="big-title">等待今日課表</div>
+    <div class="big-sub">教練未派今日課表<br>收到通知後重新打開此連結</div>
+    <div style="margin-top:24px">
+      <button onclick="location.reload()" style="padding:12px 28px;background:var(--accent-bg);
+        border:1px solid var(--border-sel);color:var(--accent-t);border-radius:10px;
+        font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer">
+        🔄 重新載入
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Already Done ── -->
+<div id="screenAlreadyDone" class="screen">
+  <div class="center-screen">
+    <div class="big-icon">✅</div>
+    <div class="big-title">已完成訓練</div>
+    <div class="big-sub" id="alreadyDoneMsg">呢個課表已經完成咗<br>教練已收到你的訓練記錄</div>
+    <div id="alreadyDoneSummary" style="margin-top:16px;width:100%;max-width:340px"></div>
+  </div>
+</div>
+
+<!-- ── Workout ── -->
+<div id="screenWorkout" class="screen" style="padding-bottom:90px">
+  <div class="wo-banner">
+    <div class="wo-coach" id="woCoach">教練</div>
+    <div class="wo-title" id="woTitle">今日訓練</div>
+    <div class="wo-meta" id="woMeta"></div>
+    <div class="wo-student" id="woStudent"></div>
+  </div>
+
+  <div id="checkinWrap"></div>
+
+  <div class="prog-wrap">
+    <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="prog-txt" id="progTxt">0/0</div>
+  </div>
+
+  <div id="exList"></div>
+  <div style="height:16px"></div>
+
+  <div class="submit-wrap">
+    <button class="submit-btn" id="submitBtn" onclick="submitWorkout()">完成訓練 💪</button>
+  </div>
+</div>
+
+<!-- ── Done ── -->
+<div id="screenDone" class="screen">
+  <div class="center-screen">
+    <div class="big-icon">🎉</div>
+    <div class="big-title" style="color:var(--accent)">GREAT JOB!</div>
+    <div class="done-vol" id="doneVol">0</div>
+    <div class="done-vol-lbl">TOTAL VOLUME (KG)</div>
+    <div class="done-ex-list" id="doneExList"></div>
+    <div style="font-size:13px;color:var(--dim);margin-top:16px">訓練記錄已傳送給教練 ✅</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════
+   FIREBASE CONFIG — 同 Coach App 一樣
+══════════════════════════════════════ */
+const FB_CONFIG = {
+  apiKey:            "AIzaSyDVib6xIEPWUMmh2Kdp5xisU0Cx6Zs6O3U",
+  authDomain:        "iron-log-7c180.firebaseapp.com",
+  projectId:         "iron-log-7c180",
+  storageBucket:     "iron-log-7c180.firebasestorage.app",
+  messagingSenderId: "172718642883",
+  appId:             "1:172718642883:web:5dc5c14fdd5bf56450b476"
+};
+
+firebase.initializeApp(FB_CONFIG);
+const db = firebase.firestore();
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let assignment  = null;
+let coachId     = null;
+let studentId   = null;
+let checkedIn   = false;
+let checkinTime = null;
+let sessionData = [];
+
+/* ══════════════════════════════════════
+   BOOT — 永久連結模式
+   URL: ?c=COACH_ID&s=STUDENT_ID
+   每次教練派課表 → overwrite currentWorkout/{studentId}
+   學生永遠用同一條連結
+══════════════════════════════════════ */
+(async function boot() {
+  const p  = new URLSearchParams(location.search);
+  coachId   = p.get('c');
+  studentId = p.get('s');
+
+  if (!coachId || !studentId) {
+    showError('連結格式不正確，請向教練索取連結。');
+    return;
+  }
+
+  try {
+    const snap = await db
+      .collection('coaches').doc(coachId)
+      .collection('currentWorkout').doc(studentId)
+      .get();
+
+    if (!snap.exists) {
+      showScreen('screenWaiting');
+      return;
+    }
+
+    assignment = { id: snap.id, ...snap.data() };
+
+    // Already completed today?
+    if (assignment.status === 'completed' && assignment.workoutLog) {
+      showAlreadyDone();
+      return;
+    }
+
+    if (assignment.checkedInAt) {
+      checkedIn   = true;
+      checkinTime = assignment.checkedInAt;
+    }
+
+    initWorkout();
+  } catch (e) {
+    showError('載入失敗：' + e.message);
+  }
+})();
+
+/* ══════════════════════════════════════
+   INIT WORKOUT
+══════════════════════════════════════ */
+function initWorkout() {
+  const t = assignment.templateSnapshot || {};
+  const exs = t.exercises || [];
+
+  // Init session data
+  sessionData = exs.map(ex => ({
+    name: ex.name,
+    sets: Array.from({ length: ex.sets || 3 }, () => ({ kg: '', reps: ex.reps?.split('-')[0] || '10', done: false }))
+  }));
+
+  // Restore partial log if exists
+  if (assignment.workoutLog?.exercises) {
+    assignment.workoutLog.exercises.forEach((savedEx, ei) => {
+      if (sessionData[ei]) sessionData[ei].sets = savedEx.sets || sessionData[ei].sets;
+    });
+  }
+
+  renderWorkout();
+  showScreen('screenWorkout');
+
+  // Auto check-in on open
+  if (!checkedIn) doCheckIn();
+}
+
+function renderWorkout() {
+  const t = assignment.templateSnapshot || {};
+
+  document.getElementById('woCoach').textContent   = (assignment.coachName || '你的教練') + ' 派畀你';
+  document.getElementById('woTitle').textContent   = t.name || '今日訓練';
+  document.getElementById('woStudent').textContent = assignment.studentName ? `👤 ${assignment.studentName}` : '';
+  document.getElementById('woMeta').innerHTML      = (t.muscles || []).map(m =>
+    `<span class="wo-tag">${m}</span>`).join('') +
+    `<span class="wo-tag">${fmtDate(assignment.date)}</span>`;
+
+  // Checkin banner
+  const cwrap = document.getElementById('checkinWrap');
+  cwrap.innerHTML = checkedIn
+    ? `<div class="checkin-banner">
+        <div class="checkin-dot"></div>
+        <div class="checkin-text">已報到</div>
+        <div class="checkin-time">${checkinTime ? fmtTime(checkinTime) : ''}</div>
+       </div>`
+    : '';
+
+  // Exercises
+  const exs = t.exercises || [];
+  document.getElementById('exList').innerHTML = exs.map((ex, ei) => renderExCard(ex, ei)).join('');
+
+  updateProg();
+}
+
+function renderExCard(ex, ei) {
+  const sd = sessionData[ei];
+  const allDone = sd.sets.every(s => s.done);
+  const doneCnt = sd.sets.filter(s => s.done).length;
+
+  let rows = `<div class="set-hdr"><span>#</span><span>KG</span><span>次數</span><span></span></div>`;
+  sd.sets.forEach((sv, si) => {
+    rows += `<div class="set-row">
+      <div class="set-n">${si + 1}</div>
+      <input class="s-inp kg" type="number" inputmode="decimal" step="0.5"
+        placeholder="0" value="${sv.kg || ''}"
+        id="kg-${ei}-${si}" onchange="saveSetVal(${ei},${si})">
+      <input class="s-inp" type="number" inputmode="numeric" min="1" max="100"
+        placeholder="${ex.reps?.split('-')[0] || '10'}" value="${sv.reps || ''}"
+        id="rp-${ei}-${si}" onchange="saveSetVal(${ei},${si})">
+      <button class="ck ${sv.done ? 'on' : ''}" id="ck-${ei}-${si}"
+        onclick="toggleDone(${ei},${si})">✓</button>
+    </div>`;
+  });
+
+  if (assignment.notes) {
+    // show coach note on first card only
+  }
+
+  return `<div class="ex-card ${allDone ? 'done' : ''}" id="exc-${ei}" style="animation-delay:${ei * 0.04}s">
+    <div class="ex-head" onclick="toggleCard(${ei})">
+      <div class="ex-num">${ei + 1}</div>
+      <div class="ex-info">
+        <div class="ex-name">${ex.name}</div>
+        <div class="ex-scheme">${ex.sets} 組 · ${ex.reps} 次 · 休息 ${ex.rest}s</div>
+      </div>
+      <div class="ex-status">
+        ${doneCnt > 0 ? `<div class="ex-done-badge">${doneCnt}/${sd.sets.length}</div>` : ''}
+      </div>
+      <span class="ex-arrow">▾</span>
+    </div>
+    <div class="ex-body">
+      ${rows}
+      <textarea class="note-area" rows="2" placeholder="備註（可選）"
+        id="note-${ei}" onchange="saveNoteVal(${ei})">${sd.note || ''}</textarea>
+    </div>
+  </div>`;
+}
+
+function toggleCard(ei) {
+  const card = document.getElementById(`exc-${ei}`);
+  card.classList.toggle('open');
+}
+
+function saveSetVal(ei, si) {
+  const kg   = document.getElementById(`kg-${ei}-${si}`)?.value || '';
+  const reps = document.getElementById(`rp-${ei}-${si}`)?.value || '';
+  sessionData[ei].sets[si].kg   = kg;
+  sessionData[ei].sets[si].reps = reps;
+  autoSaveDraft();
+}
+
+function saveNoteVal(ei) {
+  sessionData[ei].note = document.getElementById(`note-${ei}`)?.value || '';
+}
+
+function toggleDone(ei, si) {
+  const ck = document.getElementById(`ck-${ei}-${si}`);
+  ck.classList.toggle('on');
+  const isDone = ck.classList.contains('on');
+  sessionData[ei].sets[si].done = isDone;
+  if (isDone && navigator.vibrate) navigator.vibrate(30);
+
+  // Save kg/reps at toggle time
+  saveSetVal(ei, si);
+
+  // Update card done state
+  const allDone = sessionData[ei].sets.every(s => s.done);
+  document.getElementById(`exc-${ei}`).classList.toggle('done', allDone);
+
+  updateProg();
+  autoSaveDraft();
+}
+
+function updateProg() {
+  const total = sessionData.length;
+  const done  = sessionData.filter(ex => ex.sets.every(s => s.done)).length;
+  const pct   = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progTxt').textContent  = `${done}/${total} 動作`;
+}
+
+/* ══════════════════════════════════════
+   CHECK-IN
+══════════════════════════════════════ */
+async function doCheckIn() {
+  try {
+    const now = new Date().toISOString();
+    await db.collection('coaches').doc(coachId)
+            .collection('currentWorkout').doc(studentId)
+            .update({ checkedInAt: now, status: 'in_progress' });
+    checkedIn   = true;
+    checkinTime = now;
+    renderWorkout();
+  } catch (e) { /* silent */ }
+}
+
+/* ══════════════════════════════════════
+   AUTO-SAVE DRAFT
+══════════════════════════════════════ */
+let draftTimer;
+function autoSaveDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(async () => {
+    try {
+      await db.collection('coaches').doc(coachId)
+              .collection('currentWorkout').doc(studentId)
+              .update({ 'workoutLog.exercises': sessionData });
+    } catch (e) { /* silent */ }
+  }, 2000);
+}
+
+/* ══════════════════════════════════════
+   SUBMIT
+══════════════════════════════════════ */
+async function submitWorkout() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '儲存中...';
+
+  let totalVolume = 0;
+  sessionData.forEach(ex => {
+    ex.sets.forEach(s => {
+      const kg  = parseFloat(s.kg);
+      const rep = parseInt(s.reps);
+      if (s.done && !isNaN(kg) && !isNaN(rep)) totalVolume += kg * rep;
+    });
+  });
+
+  const workoutLog = {
+    exercises:   sessionData,
+    totalVolume: Math.round(totalVolume),
+    completedAt: new Date().toISOString()
+  };
+
+  try {
+    await db.collection('coaches').doc(coachId)
+            .collection('currentWorkout').doc(studentId)
+            .update({ workoutLog, status: 'completed' });
+
+    showDone(workoutLog);
+    if (typeof confetti === 'function')
+      confetti({ particleCount: 120, spread: 70, origin: { y: 0.5 },
+                 colors: ['#38e0a0','#f5c842','#5b9bf5'] });
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '完成訓練 💪';
+    toast('提交失敗：' + e.message);
+  }
+}
+
+/* ══════════════════════════════════════
+   SCREENS
+══════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('on');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  el.style.display = 'block';
+  el.classList.add('on');
+}
+
+function showError(msg) {
+  document.getElementById('errorMsg').innerHTML = msg;
+  showScreen('screenError');
+}
+
+function showAlreadyDone() {
+  const log = assignment.workoutLog || {};
+  document.getElementById('alreadyDoneMsg').innerHTML =
+    `呢個課表已完成 ✅<br>教練已收到你的訓練記錄`;
+
+  const exSummary = (log.exercises || []).map(ex => {
+    const best = Math.max(0, ...ex.sets.filter(s => s.done && s.kg).map(s => parseFloat(s.kg)));
+    const cnt  = ex.sets.filter(s => s.done).length;
+    return cnt > 0
+      ? `<div class="done-ex-row"><span class="done-ex-name">${ex.name}</span>
+           <span class="done-ex-kg">${best > 0 ? best + 'kg' : '—'} ×${cnt}</span></div>`
+      : '';
+  }).join('');
+
+  document.getElementById('alreadyDoneSummary').innerHTML =
+    `<div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);text-align:center">
+       ${log.totalVolume || 0} <span style="font-size:14px;color:var(--dim)">KG</span>
+     </div>` + exSummary;
+
+  showScreen('screenAlreadyDone');
+}
+
+function showDone(log) {
+  document.getElementById('doneVol').textContent = log.totalVolume || 0;
+  document.getElementById('doneExList').innerHTML = (log.exercises || []).map(ex => {
+    const best = Math.max(0, ...ex.sets.filter(s => s.done && s.kg).map(s => parseFloat(s.kg)));
+    const cnt  = ex.sets.filter(s => s.done).length;
+    return cnt > 0
+      ? `<div class="done-ex-row">
+           <span class="done-ex-name">${ex.name}</span>
+           <span class="done-ex-kg">${best > 0 ? best + 'kg' : '—'} ×${cnt}組</span>
+         </div>`
+      : '';
+  }).join('');
+  showScreen('screenDone');
+}
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function fmtDate(s) {
+  if (!s) return '';
+  const d = new Date(s + 'T12:00:00');
+  const w = ['日','一','二','三','四','五','六'];
+  return `${d.getMonth()+1}月${d.getDate()}日 (${w[d.getDay()]})`;
+}
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+let toastTm;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTm);
+  toastTm = setTimeout(() => t.classList.remove('on'), 2500);
+}
+</script>
+</body>
+</html>
