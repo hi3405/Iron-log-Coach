@@ -459,7 +459,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <pre style="font-size:11px;color:var(--accent-t);background:var(--bg);padding:10px;border-radius:8px;overflow-x:auto;line-height:1.6">match /coaches/{uid}/{doc=**} {
   allow read,write: if request.auth.uid==uid;
 }
-match /coaches/{uid}/assignments/{aid} {
+match /coaches/{uid}/currentWorkout/{sid} {
   allow read,update: if true;
 }</pre>
     </div>
@@ -1329,36 +1329,46 @@ function renderAssignList(mode) {
 async function confirmAssign() {
   if (!activeStudentId)    { toast('請選擇學生'); return; }
   if (!selectedTemplateId) { toast('請選擇模板'); return; }
-  if (!db) {
-    const s=students.find(x=>x.id===activeStudentId);
-    const t=templates.find(x=>x.id===selectedTemplateId);
-    closeModal('modalAssign');
-    showLinkModal(`ironlog-student.html?c=DEMO_UID&a=DEMO_ID`, `${t.name} → ${s.name}`);
-    return;
-  }
   const s = students.find(x=>x.id===activeStudentId);
   const t = templates.find(x=>x.id===selectedTemplateId);
   const note = document.getElementById('assign-note').value.trim();
-  try {
-    const assignData = {
-      studentId:activeStudentId, studentName:s.name,
-      coachName:currentUser.displayName||'教練',
-      templateId:selectedTemplateId, templateName:t.name,
-      templateSnapshot:t, date:todayStr(), note:note||'',
-      status:'pending', createdAt:firebase.firestore.FieldValue.serverTimestamp()
-    };
-    const ref = await assignsRef().add(assignData);
-    closeModal('modalAssign');
 
-    // Generate and show link
-    const link = buildStudentLink(currentUser.uid, ref.id);
+  if (!db) {
+    closeModal('modalAssign');
+    showLinkModal(buildStudentLink('DEMO_UID', activeStudentId), `${t.name} → ${s.name}`);
+    return;
+  }
+
+  try {
+    const workoutData = {
+      studentId:   activeStudentId,
+      studentName: s.name,
+      coachName:   currentUser.displayName || '教練',
+      templateId:  selectedTemplateId,
+      templateName: t.name,
+      templateSnapshot: t,
+      date:    todayStr(),
+      note:    note || '',
+      status:  'pending',
+      workoutLog: null,
+      assignedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Write to currentWorkout/{studentId} — overwrites previous (permanent link)
+    await coachRef().collection('currentWorkout').doc(activeStudentId).set(workoutData);
+
+    // Also write to assignments history
+    await assignsRef().add(workoutData);
+
+    closeModal('modalAssign');
+    const link = buildStudentLink(currentUser.uid, activeStudentId);
     showLinkModal(link, `${t.name} → ${s.name}`);
   } catch(e){ toast('派出失敗：'+e.message); }
 }
 
-function buildStudentLink(coachId, assignId) {
+function buildStudentLink(coachId, sId) {
   const base = location.origin + location.pathname.replace('ironlog-coach.html','ironlog-student.html');
-  return `${base}?c=${coachId}&a=${assignId}`;
+  return `${base}?c=${coachId}&s=${sId}`;
 }
 
 function showLinkModal(link, sub) {
